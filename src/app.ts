@@ -36,15 +36,22 @@ class Project {
     }
 }
 
-type Listener = (items: Project[]) => void;
+type Listener<T> = (items: T[]) => void;
+
+class State<T>{
+    protected _listeners: Listener<T> [] = [];
+
+    addListener(listenerFn: Listener<T>){
+        this._listeners.push(listenerFn)
+    }
+}
 
 
-class ProjectState {
-    private _listeners: Listener [] = [];
+class ProjectState extends State<Project>{
     private _projects: Project [] = [];
     private static _instance: ProjectState;
 
-    private constructor(){}
+    private constructor(){ super(); }
 
     static get instance() {
         if (!this._instance) {
@@ -61,9 +68,6 @@ class ProjectState {
         for(const listenerFn of this._listeners) {
             listenerFn([...this._projects]);
         }
-    }
-    addListener(listenerFn: Listener){
-        this._listeners.push(listenerFn)
     }
 }
 
@@ -142,6 +146,37 @@ abstract class Compenent <T extends HTMLElement, U extends HTMLElement> {
     abstract renderContent(): void;
 }
 
+class ProjectItem extends Compenent<HTMLUListElement, HTMLLinkElement> {
+    constructor(hostId: string, private project: Project) {
+        super( 'single-project', hostId, false, project.id);
+        this.renderContent();
+
+    }
+
+    configure(): void {
+    }
+
+    renderContent(): void {
+        const header = document.createElement('h2');
+        const subHeader = document.createElement('h3');
+        const content = document.createElement('p');
+        header.textContent = this.project.title;
+        subHeader.textContent = this._getAssignament();
+        content.textContent = this.project.description;
+        console.log(this.element);
+        this.element.appendChild(header)
+        this.element.appendChild(subHeader)
+        this.element.appendChild(content)
+    }
+
+    private _getAssignament () {
+        if (this.project.people === 1)  return ' 1 Person';
+        return `${this.project.people} Persons`
+    }
+
+
+}
+
 
 class ProjectList extends Compenent<HTMLDivElement, HTMLElement>{
     assignedProjects: Project[] = [];
@@ -156,9 +191,7 @@ class ProjectList extends Compenent<HTMLDivElement, HTMLElement>{
         const listEl = document.getElementById(this.ulId)!
         listEl.innerHTML = '';
         for (const assignetdProject of this.assignedProjects) {
-              const listItem = document.createElement('li');
-              listItem.textContent = assignetdProject.title;
-              listEl.appendChild(listItem);
+            new ProjectItem(this.ulId, assignetdProject)
         }
 
     }
